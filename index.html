@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Birthday Reminders</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { color-scheme: dark; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0a0f 0%, #12001a 50%, #0a0a0f 100%);
+      color: #e8e0f0;
+      font-family: 'DM Sans', sans-serif;
+      padding-bottom: 60px;
+    }
+    ::placeholder { color: #555; }
+    input, textarea, button { outline: none; font-family: 'DM Sans', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    /* TODAY BANNER */
+    #today-banner {
+      display: none;
+      background: linear-gradient(90deg, #ff6b6b, #ffa94d);
+      padding: 12px 24px;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      font-size: 15px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* HEADER */
+    header {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 20px 20px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: 900;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #e9d5ff, #c084fc, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      color: #7c6f8e;
+      font-size: 13px;
+      margin-top: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .btn-add {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      border: none;
+      color: #fff;
+      border-radius: 14px;
+      padding: 12px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(168,85,247,0.35);
+      transition: all 0.2s;
+    }
+    .btn-add:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .btn-add .plus { font-size: 22px; line-height: 1; }
+
+    /* CONTROLS */
+    .controls {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .search-wrap { position: relative; }
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      color: #666;
+      pointer-events: none;
+    }
+    #search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 16px 12px 40px;
+      color: #e8e0f0;
+      font-size: 15px;
+      transition: border-color 0.2s;
+      color-scheme: dark;
+    }
+    #search-input:focus { border-color: #c084fc; box-shadow: 0 0 0 3px rgba(192,132,252,0.15); }
+    .tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 8px 16px;
+      color: #7c6f8e;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: rgba(168,85,247,0.15);
+      border-color: rgba(168,85,247,0.4);
+      color: #c084fc;
+    }
+
+    /* LIST */
+    #birthday-list {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+      animation: slideIn 0.35s ease both;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+    .card-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .emoji-circle {
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: rgba(192,132,252,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; flex-shrink: 0;
+    }
+    .emoji-circle.today { background: rgba(255,107,107,0.15); }
+    .card-name { font-weight: 600; font-size: 16px; color: #e8e0f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-date { font-size: 13px; color: #7c6f8e; margin-top: 2px; }
+    .card-note { font-size: 12px; color: #5a4f6a; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+    .badge {
+      border-radius: 8px; padding: 4px 10px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .badge.today-badge { animation: pulse 1.5s infinite; }
+    .card-actions { display: flex; gap: 4px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s;
+      color: inherit;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* EMPTY */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .empty-icon { font-size: 52px; }
+    .empty p { color: #555; margin-top: 12px; }
+
+    /* MODAL */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    #modal-overlay.open { display: flex; }
+    .modal {
+      background: #13001f;
+      border: 1.5px solid rgba(168,85,247,0.2);
+      border-radius: 24px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #e9d5ff;
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9b87b0;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+    .form-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: #e8e0f0;
+      font-size: 15px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      color-scheme: dark;
+    }
+    .form-input:focus { border-color: #c084fc; box-shadow: 0 0 0 3px rgba(192,132,252,0.15); }
+    textarea.form-input { height: 72px; resize: none; }
+    .emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .emoji-opt {
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 7px 9px;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.15s;
+    }
+    .emoji-opt.selected {
+      background: rgba(168,85,247,0.2);
+      border-color: #a855f7;
+      transform: scale(1.1);
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+    .btn-cancel {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 11px 20px;
+      color: #7c6f8e;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: rgba(255,255,255,0.2); color: #e8e0f0; }
+    .btn-save {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 22px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(168,85,247,0.4);
+      transition: all 0.2s;
+    }
+    .btn-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    /* TOAST */
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      border-radius: 12px;
+      padding: 12px 20px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      z-index: 999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    /* ANIMATIONS */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    @keyframes slideIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes toastIn { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
+
+    /* MOBILE */
+    @media (max-width: 480px) {
+      .btn-add .label { display: none; }
+      .card-note { max-width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Today Banner -->
+  <div id="today-banner">
+    <span>🎂</span>
+    <span id="today-names"></span>
+    <span>🎉</span>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>Birthday<br/>Reminders</h1>
+      <p class="subtitle" id="count-label">0 people · never forget again</p>
+    </div>
+    <button class="btn-add" onclick="openAdd()">
+      <span class="plus">+</span>
+      <span class="label">Add Birthday</span>
+    </button>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="search-input" type="text" placeholder="Search birthdays..." oninput="render()"/>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-upcoming" onclick="setTab('upcoming')">🔜 Upcoming</button>
+      <button class="tab-btn" id="tab-all" onclick="setTab('all')">📋 All</button>
+    </div>
+  </div>
+
+  <!-- List -->
+  <main id="birthday-list"></main>
+
+  <!-- Modal -->
+  <div id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <h2 id="modal-title">Add Birthday</h2>
+      <label class="form-label">Name</label>
+      <input id="input-name" class="form-input" type="text" placeholder="Person's name"/>
+      <label class="form-label">Birthday</label>
+      <input id="input-date" class="form-input" type="date"/>
+      <label class="form-label">Pick an Emoji</label>
+      <div class="emoji-grid" id="emoji-grid"></div>
+      <label class="form-label">Note <span style="color:#555;font-weight:400">(optional)</span></label>
+      <textarea id="input-note" class="form-input" placeholder="Gift ideas, reminders..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-save" onclick="handleSave()">Add Birthday 🎉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <script>
+    const EMOJIS = ["🎂","🎉","🎁","👑","🌟","💫","🦋","🌺","🎈","🥳","🌈","💖","🦄","🍰","✨"];
+    const SAMPLE = [
+      { id: 1, name: "Mom", date: "1965-03-15", emoji: "👩", note: "Get flowers!" },
+      { id: 2, name: "Raj", date: "1990-03-18", emoji: "🎂", note: "He loves chocolate cake" },
+      { id: 3, name: "Priya", date: "1995-07-04", emoji: "🎉", note: "" },
+      { id: 4, name: "Arjun", date: "1988-12-25", emoji: "🎁", note: "Christmas birthday!" },
+    ];
+
+    let birthdays = JSON.parse(localStorage.getItem("birthdays") || "null") || SAMPLE;
+    let currentTab = "upcoming";
+    let editId = null;
+    let selectedEmoji = "🎂";
+
+    function save() { localStorage.setItem("birthdays", JSON.stringify(birthdays)); }
+
+    function daysUntil(dateStr) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const b = new Date(dateStr);
+      const next = new Date(today.getFullYear(), b.getMonth(), b.getDate());
+      if (next < today) next.setFullYear(today.getFullYear() + 1);
+      return Math.round((next - today) / 86400000);
+    }
+
+    function getAge(dateStr) {
+      const today = new Date(), b = new Date(dateStr);
+      let age = today.getFullYear() - b.getFullYear();
+      const m = today.getMonth() - b.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+      return age;
+    }
+
+    function formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "long" });
+    }
+
+    function getBadge(days) {
+      if (days === 0) return { label: "TODAY! 🎉", color: "#ff6b6b" };
+      if (days === 1) return { label: "TOMORROW", color: "#ffa94d" };
+      if (days <= 7) return { label: `${days} days`, color: "#74c0fc" };
+      if (days <= 30) return { label: `${days} days`, color: "#a9e34b" };
+      return { label: `${days} days`, color: "#868e96" };
+    }
+
+    function setTab(tab) {
+      currentTab = tab;
+      document.getElementById("tab-upcoming").classList.toggle("active", tab === "upcoming");
+      document.getElementById("tab-all").classList.toggle("active", tab === "all");
+      render();
+    }
+
+    function render() {
+      const search = document.getElementById("search-input").value.toLowerCase();
+      const sorted = [...birthdays]
+        .filter(b => b.name.toLowerCase().includes(search))
+        .sort((a, b) => daysUntil(a.date) - daysUntil(b.date));
+
+      const upcoming = sorted.filter(b => daysUntil(b.date) <= 30);
+      const list = currentTab === "upcoming" ? upcoming : sorted;
+
+      // Update tab labels
+      document.getElementById("tab-upcoming").textContent = `🔜 Upcoming (${upcoming.length})`;
+      document.getElementById("tab-all").textContent = `📋 All (${sorted.length})`;
+      document.getElementById("count-label").textContent = `${birthdays.length} people · never forget again`;
+
+      // Today banner
+      const todays = birthdays.filter(b => daysUntil(b.date) === 0);
+      const banner = document.getElementById("today-banner");
+      if (todays.length > 0) {
+        banner.style.display = "flex";
+        document.getElementById("today-names").textContent = `Today: ${todays.map(b => b.name).join(", ")}'s Birthday!`;
+      } else {
+        banner.style.display = "none";
+      }
+
+      // Render list
+      const container = document.getElementById("birthday-list");
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">🎈</div>
+            <p>${currentTab === "upcoming" ? "No birthdays in the next 30 days!" : "No birthdays found."}</p>
+            <button class="btn-add" onclick="openAdd()" style="margin-top:20px;font-size:14px">
+              <span class="plus">+</span> <span>Add Birthday</span>
+            </button>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = list.map((b, i) => {
+        const days = daysUntil(b.date);
+        const badge = getBadge(days);
+        const age = getAge(b.date) + 1;
+        return `
+          <div class="card" style="animation-delay:${i * 0.05}s">
+            <div class="card-left">
+              <div class="emoji-circle ${days === 0 ? 'today' : ''}">${b.emoji}</div>
+              <div style="min-width:0">
+                <div class="card-name">${b.name}</div>
+                <div class="card-date">${formatDate(b.date)} · turning ${age}</div>
+                ${b.note ? `<div class="card-note">📝 ${b.note}</div>` : ''}
+              </div>
+            </div>
+            <div class="card-right">
+              <div class="badge ${days === 0 ? 'today-badge' : ''}"
+                   style="background:${badge.color}22;color:${badge.color}">${badge.label}</div>
+              <div class="card-actions">
+                <button class="icon-btn" onclick="openEdit(${b.id})" title="Edit">✏️</button>
+                <button class="icon-btn" onclick="deleteBirthday(${b.id})" title="Delete">🗑️</button>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // EMOJI GRID
+    function buildEmojiGrid() {
+      document.getElementById("emoji-grid").innerHTML = EMOJIS.map(em => `
+        <button class="emoji-opt ${em === selectedEmoji ? 'selected' : ''}"
+                onclick="selectEmoji('${em}')">${em}</button>
+      `).join("");
+    }
+
+    function selectEmoji(em) {
+      selectedEmoji = em;
+      buildEmojiGrid();
+    }
+
+    // MODAL
+    function openAdd() {
+      editId = null;
+      selectedEmoji = "🎂";
+      document.getElementById("modal-title").textContent = "Add Birthday";
+      document.getElementById("input-name").value = "";
+      document.getElementById("input-date").value = "";
+      document.getElementById("input-note").value = "";
+      document.querySelector(".btn-save").textContent = "Add Birthday 🎉";
+      buildEmojiGrid();
+      document.getElementById("modal-overlay").classList.add("open");
+      setTimeout(() => document.getElementById("input-name").focus(), 100);
+    }
+
+    function openEdit(id) {
+      const b = birthdays.find(x => x.id === id);
+      if (!b) return;
+      editId = id;
+      selectedEmoji = b.emoji;
+      document.getElementById("modal-title").textContent = "Edit Birthday";
+      document.getElementById("input-name").value = b.name;
+      document.getElementById("input-date").value = b.date;
+      document.getElementById("input-note").value = b.note;
+      document.querySelector(".btn-save").textContent = "Save Changes";
+      buildEmojiGrid();
+      document.getElementById("modal-overlay").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modal-overlay").classList.remove("open");
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById("modal-overlay")) closeModal();
+    }
+
+    function handleSave() {
+      const name = document.getElementById("input-name").value.trim();
+      const date = document.getElementById("input-date").value;
+      const note = document.getElementById("input-note").value.trim();
+      if (!name || !date) {
+        document.getElementById("input-name").focus();
+        return;
+      }
+      if (editId) {
+        birthdays = birthdays.map(b => b.id === editId ? { ...b, name, date, emoji: selectedEmoji, note } : b);
+        showToast("Birthday updated! ✨");
+      } else {
+        birthdays.push({ id: Date.now(), name, date, emoji: selectedEmoji, note });
+        showToast("Birthday added! 🎉");
+      }
+      save();
+      closeModal();
+      render();
+    }
+
+    function deleteBirthday(id) {
+      birthdays = birthdays.filter(b => b.id !== id);
+      save();
+      render();
+      showToast("Removed.", "info");
+    }
+
+    // TOAST
+    let toastTimer;
+    function showToast(msg, type = "success") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "info" ? "#333" : "#c084fc";
+      t.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.style.display = "none"; }, 2800);
+    }
+
+    // KEYBOARD
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "Enter" && document.getElementById("modal-overlay").classList.contains("open")) handleSave();
+    });
+
+    // INIT
+    render();
+  </script>
+</body>
+</html>
